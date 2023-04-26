@@ -1,4 +1,5 @@
-﻿using BlogAPI.ViewModels;
+﻿using BlogAPI.Models;
+using BlogAPI.ViewModels;
 using CryptoHelper;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
@@ -21,7 +22,7 @@ public class AuthService : IAuthService
         _jwtLifespan = jwtLifespan;
     }
 
-    public AuthData GetAuthData(string id)
+    public AuthData GetAuthData(User user)
     {
         var expirationTime = DateTime.UtcNow.AddSeconds(_jwtLifespan);
 
@@ -29,7 +30,7 @@ public class AuthService : IAuthService
         {
             Subject = new ClaimsIdentity(new[]
             {
-                    new Claim(ClaimTypes.Name, id)
+                    new Claim(ClaimTypes.Name, user.Id)
                 }),
             Expires = expirationTime,
             // new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256Signature)
@@ -45,7 +46,8 @@ public class AuthService : IAuthService
         {
             Token = token,
             TokenExpirationTime = ((DateTimeOffset)expirationTime).ToUnixTimeSeconds(),
-            Id = id
+            Id = user.Id,
+            UserName = user.UserName
         };
     }
 

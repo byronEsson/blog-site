@@ -43,7 +43,9 @@ namespace BlogAPI
                 )
             );
 
-            builder.Services.AddScoped(typeof(IUserRepository<User, string>), typeof(UserRepository<User, string>));
+            builder.Services.AddScoped(typeof(IUserRepository<User, string>), typeof(UserRepository<User, string>)); builder.Services.AddScoped(typeof(IBaseRepository<, >), typeof(BaseRepository<, >));
+            builder.Services.AddScoped(typeof(IBlogService<,>), typeof(BlogService<,>));
+           
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -65,10 +67,10 @@ namespace BlogAPI
                 app.UseHsts();
             }
             app.UseCors(builder => builder
-                //.AllowAnyOrigin()
+                .AllowAnyOrigin()
                 .AllowAnyMethod()
                 .AllowAnyHeader()
-                .AllowCredentials()
+                //.AllowCredentials()
                 );
             //app.UseHttpsRedirection();
 

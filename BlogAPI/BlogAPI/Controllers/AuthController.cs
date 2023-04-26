@@ -2,6 +2,7 @@
 using BlogAPI.Models;
 using BlogAPI.Services;
 using BlogAPI.ViewModels;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BlogAPI.Controllers;
@@ -10,10 +11,12 @@ namespace BlogAPI.Controllers;
 public class AuthController : ControllerBase
 {
     IAuthService _authService;
+    IBlogService<User, string> _blogService;
     IUserRepository<User, string> _repository;
 
-    public AuthController(IAuthService authService, IUserRepository<User, string> repository)
+    public AuthController(IAuthService authService, IBlogService<User, string> blogService, IUserRepository<User, string> repository)
     {
+        _blogService = blogService;
         _authService = authService;
         _repository = repository;
     }
@@ -23,17 +26,18 @@ public class AuthController : ControllerBase
     {
         if(!ModelState.IsValid) return BadRequest(ModelState);
 
-        var user = _repository.GetSingle(u => u.Email == model.Email);
+        var serviceResponse = _blogService.FindSingle(u => u.Email == model.Email);
 
-        if (user == null) return BadRequest(new { email = "no user with this email" });
+        if (serviceResponse.Data == null) return BadRequest(new { email = serviceResponse.Message });
 
-        var passwordValid = _authService.VerifyPassword(model.Password, user.PasswordHash);
+        var passwordValid = _authService.VerifyPassword(model.Password, serviceResponse.Data.PasswordHash);
 
         if(!passwordValid)
         {
             return BadRequest(new { password = "invalid password" });
         }
-        return _authService.GetAuthData(user.Id);
+
+        return _authService.GetAuthData(serviceResponse.Data);
     }
 
     [HttpPost("register")]
@@ -41,9 +45,9 @@ public class AuthController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var emailUniq = _repository.IsEmailUniq(model.Email);
+        var emailUniq = IsEmailUniq(model.Email);
         if (!emailUniq) return BadRequest(new { email = "user with this email already exists" });
-        var usernameUniq = _repository.IsUsernameUniq(model.UserName);
+        var usernameUniq = IsUsernameUniq(model.UserName);
         if (!usernameUniq) return BadRequest(new { username = "user with this email already exists" });
 
         var id = Guid.NewGuid().ToString();
@@ -54,8 +58,18 @@ public class AuthController : ControllerBase
             Email = model.Email,
             PasswordHash = _authService.HashPassword(model.Password)
         };
-        _repository.Add(user);
-        await _repository.SaveAsync();
-        return _authService.GetAuthData(id);
+        await _blogService.CreateAsync(user);
+        await _blogService.SaveAsync();
+        return _authService.GetAuthData(user);
+    }
+    private bool IsEmailUniq(string email)
+    {
+        var user = _blogService.FindSingle(u => u.Email == email);
+        return user != null;
+    }
+    private bool IsUsernameUniq(string username)
+    {
+        var user = _blogService.FindSingle(u => u.UserName == username);
+        return user != null;
     }
 }
