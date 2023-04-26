@@ -1,0 +1,84 @@
+
+using BlogAPI.Data;
+using BlogAPI.Data.Repositories;
+using BlogAPI.Models;
+using BlogAPI.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
+
+namespace BlogAPI
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
+            var connectionString = builder.Configuration.GetConnectionString("default") ?? throw new InvalidOperationException("Connection string 'default' not found");
+            builder.Services.AddDbContext<BlogContext>(options => options.UseSqlServer(connectionString));
+            // Add services to the container.
+            builder.Services.AddCors();
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(builder.Configuration.GetValue<string>("JWTSecretKey"))
+                        )
+                    };
+                });
+            builder.Services.AddSingleton<IAuthService>(
+                new AuthService(
+                    builder.Configuration.GetValue<string>("JWTSecretKey"),
+                    builder.Configuration.GetValue<int>("JWTLifespan")
+                )
+            );
+
+            builder.Services.AddScoped(typeof(IUserRepository<User, string>), typeof(UserRepository<User, string>));
+            builder.Services.AddControllers();
+            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+            var app = builder.Build();
+            using (var scope = app.Services.CreateScope())
+            {
+                SeedData.Seed(scope.ServiceProvider);
+            }
+            // Configure the HTTP request pipeline.
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+                app.UseDeveloperExceptionPage(); ;
+            }
+            else
+            {
+                app.UseHsts();
+            }
+            app.UseCors(builder => builder
+                //.AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials()
+                );
+            //app.UseHttpsRedirection();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+
+            app.MapControllers();
+
+            app.Run();
+        }
+    }
+}
