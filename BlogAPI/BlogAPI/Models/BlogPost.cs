@@ -8,5 +8,5 @@ public class BlogPost
     public DateTime? UpdatedAt { get; set; }
     public string Body { get; set; } = string.Empty!;
 
-    public List<Comment> Comments { get; set; } 
+    public List<Comment>? Comments { get; set; } = new List<Comment>();
 }

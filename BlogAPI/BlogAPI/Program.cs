@@ -5,7 +5,6 @@ using BlogAPI.Models;
 using BlogAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -43,10 +42,14 @@ namespace BlogAPI
                 )
             );
 
-            builder.Services.AddScoped(typeof(IUserRepository<User, string>), typeof(UserRepository<User, string>)); builder.Services.AddScoped(typeof(IBaseRepository<, >), typeof(BaseRepository<, >));
+            builder.Services.AddScoped(typeof(IUserRepository<User, string>), typeof(UserRepository<User, string>)); 
+            builder.Services.AddScoped(typeof(IBaseRepository<,>), typeof(BaseRepository<,>));
             builder.Services.AddScoped(typeof(IBlogService<,>), typeof(BlogService<,>));
-           
-            builder.Services.AddControllers();
+            builder.Services.AddScoped<IBaseRepository<BlogPost, int>, PostRepository>();
+
+            builder.Services.AddControllers().AddNewtonsoftJson(
+                opt => opt.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+            );
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
@@ -60,7 +63,7 @@ namespace BlogAPI
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
-                app.UseDeveloperExceptionPage(); ;
+                app.UseDeveloperExceptionPage();
             }
             else
             {
@@ -72,8 +75,9 @@ namespace BlogAPI
                 .AllowAnyHeader()
                 //.AllowCredentials()
                 );
-            //app.UseHttpsRedirection();
-
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
+            app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
 

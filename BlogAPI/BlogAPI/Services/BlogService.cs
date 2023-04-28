@@ -7,6 +7,7 @@ namespace BlogAPI.Services;
 public class BlogService<TEntity, TId> : IBlogService<TEntity, TId> where TEntity : class
 {
     internal IBaseRepository<TEntity, TId> _repository;
+    
 
     public BlogService(IBaseRepository<TEntity, TId> repository)
     {
@@ -16,10 +17,9 @@ public class BlogService<TEntity, TId> : IBlogService<TEntity, TId> where TEntit
     public async Task<ServiceResponse<TEntity>> CreateAsync(TEntity entity)
     {
         var response = new ServiceResponse<TEntity>();
-        if (_repository.IsNull || entity == null)
+        if (_repository.IsNull)
         {
-            response.WasSuccessful = false;
-            response.Message = "Repository or entity null";
+            SetRepositoryNullResponse(ref response);
             return response;
         }
         else
@@ -64,8 +64,8 @@ public class BlogService<TEntity, TId> : IBlogService<TEntity, TId> where TEntit
             SetRepositoryNullResponse(ref response);
             return response;
         }
-        response.Data = (await _repository.GetAllAsync())
-            .ToList();
+        response.Data = await _repository.GetAllAsync();
+        
         return response;
     }
 
@@ -124,7 +124,7 @@ public class BlogService<TEntity, TId> : IBlogService<TEntity, TId> where TEntit
     private void SetRepositoryNullResponse<TData>(ref ServiceResponse<TData> response)
     {
         response.WasSuccessful = false;
-        response.Message = "Repository null";
+        response.Message = $"Entity set '{typeof(TEntity).Name}' is null.";
     }
     private void SetEntityNullResponse<TData>(ref ServiceResponse<TData> response, TId id)
     {
