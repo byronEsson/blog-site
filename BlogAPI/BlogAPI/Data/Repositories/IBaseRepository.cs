@@ -11,6 +11,8 @@ public interface IBaseRepository<T, TId>
     T? GetSingle (Expression<Func<T, bool>> predicate);
     void Add(T entity);
     void AddRange(IEnumerable<T> entities);
+
+    Task<IEnumerable<T?>> FindWhere(Expression<Func<T, bool>> predicate);
     void Update(T entity);
     void Remove(T entity);
     Task SaveAsync();

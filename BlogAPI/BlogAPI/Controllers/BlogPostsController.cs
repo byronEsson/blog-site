@@ -9,6 +9,7 @@ using BlogAPI.Data;
 using BlogAPI.Models;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using BlogAPI.Services;
+using Microsoft.AspNetCore.JsonPatch;
 
 namespace BlogAPI.Controllers
 {
@@ -37,14 +38,14 @@ namespace BlogAPI.Controllers
         }
 
         [HttpGet("{id}/comments")]
-        public async Task<ActionResult<Comment>> GetCommentsByPostId(int id)
+        public async Task<ActionResult<IEnumerable<Comment>>> GetCommentsByPostId(int id)
         {
-            var serviceResponse = _commentService.FindSingle(c => c.BlogPostId == id);
+            var serviceResponse = await _commentService.GetWhere(c => c.BlogPostId == id);
             if (!serviceResponse.WasSuccessful)
             {
                 return NotFound(serviceResponse.Message);
             }
-            return serviceResponse.Data;
+            return serviceResponse.Data.ToList();
 
         }
 
@@ -88,6 +89,19 @@ namespace BlogAPI.Controllers
                 return Problem(serviceResponse.Message);
             }
             return CreatedAtAction("GetBlogPost", new { id = blogPost.Id }, blogPost);
+        }
+
+        [HttpPatch]
+        public async Task<ActionResult<BlogPost>> PatchBlogPost(int id, JsonPatchDocument<BlogPost> patch)
+        {
+            var serviceResponse = await _blogService.UpdateAsync(id, patch);
+
+            if(!serviceResponse.WasSuccessful)
+            {
+                return NotFound(serviceResponse.Message);
+            }
+
+            return serviceResponse.Data;
         }
 
         // DELETE: api/BlogPosts/5

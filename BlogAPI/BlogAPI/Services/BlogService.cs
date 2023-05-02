@@ -1,4 +1,5 @@
-﻿using BlogAPI.Data.Repositories;
+﻿using Microsoft.AspNetCore.JsonPatch;
+using BlogAPI.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -69,6 +70,21 @@ public class BlogService<TEntity, TId> : IBlogService<TEntity, TId> where TEntit
         return response;
     }
 
+    public async Task<ServiceResponse<IEnumerable<TEntity>?>> GetWhere(Expression<Func<TEntity, bool>> predicate)
+    {
+        var response = new ServiceResponse<IEnumerable<TEntity>?>();
+
+        if (_repository.IsNull)
+        {
+            SetRepositoryNullResponse(ref response);
+            return response;
+        }
+
+        response.Data = await _repository.FindWhere(predicate);
+
+        return response;
+    }
+
     public async Task<ServiceResponse<TEntity?>> GetAsync(TId id)
     {
         var response = new ServiceResponse<TEntity?>();
@@ -113,6 +129,32 @@ public class BlogService<TEntity, TId> : IBlogService<TEntity, TId> where TEntit
 
             else throw;
         }
+        return response;
+    }
+
+    public async Task<ServiceResponse<TEntity>> UpdateAsync(TId id, JsonPatchDocument<TEntity> patch)
+    {
+        var response = new ServiceResponse<TEntity>();
+        var updated = await _repository.FindAsync(id);
+        
+        patch.ApplyTo(updated);
+
+        _repository.Update(updated);
+        try
+        {
+            await _repository.SaveAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!await EntityExists(id))
+            {
+                SetEntityNullResponse(ref response, id);
+                return response;
+            }
+
+            else throw;
+        }
+        response.Data= updated;
         return response;
     }
 

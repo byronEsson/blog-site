@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.JsonPatch;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -32,7 +33,10 @@ public class BaseRepository<TEntity, TId> : IBaseRepository<TEntity, TId> where 
     {
         return await _dbSet.FindAsync(id);
     }
-
+    public async Task<IEnumerable<TEntity?>> FindWhere(Expression<Func<TEntity, bool>> predicate)
+    {
+        return await _dbSet.Where(predicate).ToListAsync();
+    }
     public TEntity GetSingle(Expression<Func<TEntity, bool>> predicate)
     {
         return  _context.Set<TEntity>().FirstOrDefault(predicate);
@@ -55,5 +59,13 @@ public class BaseRepository<TEntity, TId> : IBaseRepository<TEntity, TId> where 
     public void Update(TEntity entity)
     {
         _dbSet.Update(entity);
+    }
+
+    public async Task UpdateSimple(TEntity entity, JsonPatchDocument<TEntity> document)
+    {
+        document.ApplyTo(entity);
+
+        _context.Update(entity);
+        _context.SaveChanges();
     }
 }
