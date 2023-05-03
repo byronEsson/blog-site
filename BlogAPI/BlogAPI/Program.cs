@@ -4,6 +4,7 @@ using BlogAPI.Data.Repositories;
 using BlogAPI.Models;
 using BlogAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -16,6 +17,9 @@ namespace BlogAPI
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
             var connectionString = builder.Configuration.GetConnectionString("default") ?? throw new InvalidOperationException("Connection string 'default' not found");
             builder.Services.AddDbContext<BlogContext>(options => options.UseSqlServer(connectionString));
             // Add services to the container.
@@ -35,14 +39,19 @@ namespace BlogAPI
                         )
                     };
                 });
+            builder.Services.AddIdentity<User, IdentityRole>(options =>
+                options.SignIn.RequireConfirmedAccount = true)
+                .AddRoles<IdentityRole>()
+                .AddEntityFrameworkStores<BlogContext>();
             builder.Services.AddSingleton<IAuthService>(
                 new AuthService(
                     builder.Configuration.GetValue<string>("JWTSecretKey"),
                     builder.Configuration.GetValue<int>("JWTLifespan")
                 )
             );
-
-            builder.Services.AddScoped(typeof(IUserRepository<User, string>), typeof(UserRepository<User, string>)); 
+            //builder.Services.AddScoped<ILogger>();
+            builder.Services.AddScoped<IUserRepository<User, string>,UserRepository>(); 
+            builder.Services.AddScoped<IBaseRepository<User, string>,UserRepository>(); 
             builder.Services.AddScoped(typeof(IBaseRepository<,>), typeof(BaseRepository<,>));
             builder.Services.AddScoped(typeof(IBlogService<,>), typeof(BlogService<,>));
             builder.Services.AddScoped<IBaseRepository<BlogPost, int>, PostRepository>();
@@ -80,7 +89,7 @@ namespace BlogAPI
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
-
+            
 
             app.MapControllers();
 

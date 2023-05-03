@@ -12,21 +12,28 @@ public class AuthController : ControllerBase
 {
     IAuthService _authService;
     IBlogService<User, string> _blogService;
-    IUserRepository<User, string> _repository;
+    IBaseRepository<IdentityUserRole<string>, string> _userRoleRepository;
+    IBaseRepository<IdentityRole, string> _roleRepository;
+    private readonly ILogger _logger;
 
-    public AuthController(IAuthService authService, IBlogService<User, string> blogService, IUserRepository<User, string> repository)
+
+    public AuthController(IAuthService authService, IBlogService<User, string> blogService, IBaseRepository<IdentityUserRole<string>, string> repository, ILogger<AuthController> logger, IBaseRepository<IdentityRole, string> roleRepository)
     {
         _blogService = blogService;
         _authService = authService;
-        _repository = repository;
+        _userRoleRepository = repository;
+        _logger = logger;
+        _roleRepository = roleRepository;
     }
 
     [HttpPost("login")]
-    public ActionResult<AuthData> Post([FromBody] LoginViewModel model)
+    public async Task<ActionResult<AuthData>> Post([FromBody] LoginViewModel model)
     {
         if(!ModelState.IsValid) return BadRequest(ModelState);
 
         var serviceResponse = _blogService.FindSingle(u => u.Email == model.Email);
+
+
 
         if (serviceResponse.Data == null) return BadRequest(new { email = serviceResponse.Message });
 
@@ -36,8 +43,18 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new { password = "invalid password" });
         }
+        //_logger.LogWarning(serviceResponse.Data.Roles[0].Name);
 
-        return _authService.GetAuthData(serviceResponse.Data);
+        var roles = (await _userRoleRepository.FindWhere(r => r.UserId == serviceResponse.Data.Id)).ToList();
+
+        List<string> roleNames = new();
+
+        foreach (var role in roles)
+        {
+            roleNames.Add((await _roleRepository.FindAsync(role.RoleId)).Name);
+        }
+
+        return _authService.GetAuthData(serviceResponse.Data, roleNames);
     }
 
     [HttpPost("register")]
@@ -60,7 +77,7 @@ public class AuthController : ControllerBase
         };
         await _blogService.CreateAsync(user);
         await _blogService.SaveAsync();
-        return _authService.GetAuthData(user);
+        return _authService.GetAuthData(user, new List<string> { "Visitor"});
     }
     private bool IsEmailUniq(string email)
     {

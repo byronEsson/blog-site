@@ -37,7 +37,7 @@ public class BaseRepository<TEntity, TId> : IBaseRepository<TEntity, TId> where 
     {
         return await _dbSet.Where(predicate).ToListAsync();
     }
-    public TEntity GetSingle(Expression<Func<TEntity, bool>> predicate)
+    public virtual TEntity GetSingle(Expression<Func<TEntity, bool>> predicate)
     {
         return  _context.Set<TEntity>().FirstOrDefault(predicate);
     }

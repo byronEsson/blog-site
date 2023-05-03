@@ -1,8 +1,10 @@
 ﻿using BlogAPI.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace BlogAPI.Data.Repositories;
 
-public class UserRepository<T, TId> : BaseRepository<T, TId>, IUserRepository<T, TId> where T : User
+public class UserRepository : BaseRepository<User, string> , IUserRepository<User, string>
 {
     public UserRepository (BlogContext context) : base(context)
     {

@@ -10,11 +10,12 @@ using BlogAPI.Models;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using BlogAPI.Services;
 using Microsoft.AspNetCore.JsonPatch;
-
+using Microsoft.AspNetCore.Authorization;
 namespace BlogAPI.Controllers
 {
     [Route("api/posts")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = "Bearer")]
     public class BlogPostsController : ControllerBase
     {
         private readonly IBlogService<BlogPost, int> _blogService;
@@ -81,6 +82,7 @@ namespace BlogAPI.Controllers
         // POST: api/BlogPosts
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
+        [Authorize(Roles ="Admin")]
         public async Task<ActionResult<BlogPost>> PostBlogPost(BlogPost blogPost)
         {
             var serviceResponse = await _blogService.CreateAsync(blogPost);
